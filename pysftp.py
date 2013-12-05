@@ -19,7 +19,7 @@ from contextlib import contextmanager
 
 __version__ = "$Rev$"
 class Connection(object):
-    """Connects and logs into the specified hostname. 
+    """Connects and logs into the specified hostname.
     Arguments that are not given are guessed from the environment.
         host             - The Hostname of the remote machine.
         username         - Your username at the remote machine.(None)
@@ -29,9 +29,9 @@ class Connection(object):
         private_key_pass - password to use if your private_key is encrypted(None)
         log              - log connection/handshake details (False)
     returns a connection to the requested machine
-    
+
     srv = pysftp.Connection('example.com')
-    """ 
+    """
 
     def __init__(self,
                  host,
@@ -71,7 +71,7 @@ class Connection(object):
                 username=username,
                 password=password,
                 port=port
-            ) 
+            )
         else:
             # Use Private Key.
             if not private_key:
@@ -90,20 +90,20 @@ class Connection(object):
                 xSx_key = paramiko.DSSKey.from_private_key_file(private_key_file,password=private_key_pass)
             self._transport.connect(username = username, pkey = xSx_key)
             self._ssh.connect(host, username=username,
-                pkey=xSx_key, port=port) 
+                pkey=xSx_key, port=port)
 
-    
+
     def _sftp_connect(self):
         """Establish the SFTP connection."""
         if not self._sftp_live:
             self._sftp = paramiko.SFTPClient.from_transport(self._transport)
             self._sftp_live = True
-    
+
     @property
     def client(self):
         """Expose paramiko Channel object for advanced use."""
         return self._ssh
-    
+
     @property
     def sftp_client(self):
         """Expose paramiko SFTPClient object for advanced use."""
@@ -126,7 +126,7 @@ class Connection(object):
             localpath = os.path.split(remotepath)[1]
         self._sftp_connect()
         self._sftp.get(remotepath, localpath)
-        
+
     @contextmanager
     def open(self, remotepath, mode='r'):
         """Copies a remote file."""
@@ -153,7 +153,7 @@ class Connection(object):
         """Rename a file in the remote host."""
         self._sftp_connect()
         self._sftp.rename(oldpath, newpath)
-        
+
     def exists(self, path):
         self._sftp_connect()
         try:
@@ -177,12 +177,12 @@ class Connection(object):
             else:
                 return False
         except IOError, e:
-            if e[0] == 2: 
+            if e[0] == 2:
                 return False
             raise
         else:
             raise
-        
+
     def mkdir(self, remotepath):
         self._sftp_connect()
         self._sftp.mkdir(remotepath)
@@ -192,16 +192,19 @@ class Connection(object):
         if self.exists(remotepath):
             return
         else:
-            try:
-                self.mkdir(remotepath)
-            except IOError:
-                self.mkdir_all(posixpath.split(remotepath)[0])
-        
+            dirparts = remotepath.split('/')
+            dircount = len(dirparts)-1
+            subdir =""
+            for dirpart in xrange(0,dircount):
+                subdir = "%s%s/"%(subdir,dirparts[dirpart])
+                if subdir != "/":
+                    self.mkdir(subdir)
+
     def mkdir_put(self, localpath, remotepath = None):
         if not remotepath:
-            remotepath = posixpath.split(localpath)[1]
+            remotepath = os.path.split(localpath)[1]
         self._sftp_connect()
-        self.mkdir_all(posixpath.split(remotepath)[0])
+        self.mkdir_all(os.path.split(remotepath)[0])
         self._sftp.put(localpath, remotepath)
 
     def execute(self, command):
@@ -218,17 +221,17 @@ class Connection(object):
         """change the current working directory on the remote"""
         self._sftp_connect()
         self._sftp.chdir(path)
-        
+
     def getcwd(self):
         """return the current working directory on the remote"""
         self._sftp_connect()
         return self._sftp.getcwd()
-        
+
     def listdir(self, path='.'):
         """return a list of files for the given path"""
         self._sftp_connect()
         return self._sftp.listdir(path)
-        
+
     def close(self):
         """Closes the connection and cleans up."""
         # Close SFTP Connection.
