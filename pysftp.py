@@ -185,7 +185,10 @@ class Connection(object):
 
     def mkdir(self, remotepath):
         self._sftp_connect()
-        self._sftp.mkdir(remotepath)
+        if self.exists(remotepath):
+            return
+        else:
+            self._sftp.mkdir(remotepath)
 
     def mkdir_all(self, remotepath):
         self._sftp_connect()
